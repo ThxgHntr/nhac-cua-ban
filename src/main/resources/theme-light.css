@@ -1,0 +1,196 @@
+/* Áp dụng font cho toàn bộ ứng dụng */
+.root {
+    -fx-font-family: "Segoe UI"; /* Chọn font phù hợp */
+    -fx-border-radius: 10;
+}
+
+/* Điều chỉnh màu của các button */
+.custom-button {
+    -fx-background-color: #5ea3cc; /* Màu button (tone xanh nhạt) */
+    -fx-text-fill: #f0f0f0; /* Màu chữ (màu trắng nhẹ) */
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 5;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+/* Hiệu ứng hover */
+.custom-button:hover {
+    -fx-background-color: #6bb3d6; /* Màu button khi hover (tone xanh nhạt hơn) */
+    -fx-cursor: hand;
+}
+
+/* Hiệu ứng click */
+.custom-button:pressed {
+    -fx-background-color: #4f9dbf; /* Màu button khi nhấn (tone xanh nhạt nhất) */
+}
+
+/* Đặt kiểu cơ bản cho TextField trong light theme */
+.custom-text-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: #333; /* Màu chữ (màu xám đậm) */
+    -fx-font-size: 14px;
+    -fx-padding: 5;
+    -fx-border-color: #ccc; /* Màu viền (xám nhạt) */
+    -fx-border-width: 0 0 1 0; /* Độ dày viền */
+    -fx-border-insets: 0 0 1 0;
+}
+
+/* Hiệu ứng hover cho TextField */
+.custom-text-field:hover {
+    -fx-border-color: #999; /* Màu viền khi di chuột vào (xám nhạt hơn) */
+}
+
+/* Hiệu ứng khi TextField được focus */
+.custom-text-field:focused {
+    -fx-border-color: #7dc5e2; /* Màu viền khi focus (tone xanh nhạt) */
+}
+
+/* Đặt kiểu cho các thành phần văn bản */
+.custom-label {
+    -fx-text-fill: #333; /* Màu chữ (màu xám đậm) */
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.custom-chat-field {
+    -fx-background-color: transparent;
+    -fx-text-fill: #333; /* Màu chữ (màu xám đậm) */
+    -fx-border-color: #ccc; /* Màu viền (xám nhạt) */
+    -fx-padding: 5;
+    -fx-border-width: 1; /* Độ dày viền */
+    -fx-border-insets: 0;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+/* Hiệu ứng hover cho TextArea */
+.custom-textarea:hover {
+    -fx-border-color: #999; /* Màu viền khi di chuột vào (xám nhạt hơn) */
+}
+
+/* Hiệu ứng khi TextArea được focus */
+.custom-textarea:focused {
+    -fx-border-color: #7dc5e2; /* Màu viền khi focus (tone xanh nhạt) */
+}
+
+
+/* Đặt kiểu cho nút */
+.send-button {
+    -fx-background-color: #5ea3cc; /* Màu nền tùy chỉnh (như màu của ứng dụng của bạn) */
+    -fx-text-fill: white; /* Màu chữ (trắng) */
+    -fx-font-size: 14px; /* Kích thước chữ */
+    -fx-padding: 5; /* Padding */
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+/* Hiệu ứng hover */
+.send-button:hover {
+    -fx-background-color: #6bb3d6; /* Màu nền khi hover */
+    -fx-cursor: hand; /* Đổi con trỏ chuột thành hình tay khi hover */
+}
+
+/* Hiệu ứng khi nhấn */
+.send-button:pressed {
+    -fx-background-color: #4f9dbf; /* Màu nền khi nhấn */
+}
+
+/* Định dạng chung cho văn bản */
+.sender {
+    -fx-font-size: 16px; /* Kích thước chữ */
+    -fx-font-weight: bold;
+}
+
+.message {
+    -fx-font-size: 14px; /* Kích thước chữ */
+}
+
+.time {
+    -fx-font-size: 12px; /* Kích thước chữ */
+    -fx-fill: #888; /* Màu chữ */
+}
+
+/* Thiết lập kiểu cho các Divider (phân chia) của SplitPane */
+.split-pane > .split-pane-divider {
+    -fx-background-color: #ccc; /* Màu của Divider */
+    -fx-padding: 0 1; /* Padding cho Divider */
+}
+
+/* Thiết lập kiểu cho các Node nằm bên trong SplitPane */
+.split-pane > .split-pane-divider > .split-pane-divider {
+    -fx-background-color: #bbb; /* Màu của Divider nằm bên trong */
+}
+
+.custom-container {
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+/* Định dạng chung cho VBox */
+.user-list {
+    -fx-background-color: #f8f8f8; /* Màu nền */
+    -fx-padding: 10; /* Khoảng cách nội bộ */
+}
+
+/* Định dạng chung cho Label */
+.user-label {
+    -fx-font-size: 16px; /* Kích thước chữ */
+    -fx-alignment: center;
+    -fx-padding: 5; /* Khoảng cách nội bộ */
+}
+
+/* Định dạng chung cho Label */
+.room-id-label {
+    -fx-font-size: 16px; /* Kích thước chữ */
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-padding: 5; /* Khoảng cách nội bộ */
+}
+
+/* Kiểu cho VolumeSlider */
+.volume-slider .track {
+    -fx-background-color: #ddd; /* Màu nền của track */
+}
+
+.volume-slider .thumb {
+    -fx-background-color: #5ea3cc; /* Màu của thumb */
+    -fx-border-color: #4c8dbd; /* Màu viền của thumb */
+    -fx-border-width: 1px;
+    -fx-border-radius: 50%; /* Làm cho thumb có hình tròn */
+}
+
+.volume-slider .thumb:hover {
+    -fx-background-color: #4c8dbd; /* Màu của thumb khi hover */
+}
+
+.volume-slider .thumb:pressed {
+    -fx-background-color: #3b729a; /* Màu của thumb khi nhấn */
+}
+
+/* Kiểu cho SongProgressBar */
+.song-progress-bar .track {
+    -fx-background-color: #ddd; /* Màu nền của track */
+}
+
+.song-progress-bar .bar {
+    -fx-background-color: #5ea3cc; /* Màu của progress bar */
+}
+
+.song-progress-bar .bar:hover {
+    -fx-background-color: #4c8dbd; /* Màu của progress bar khi hover */
+}
+
+.song-progress-bar .bar:pressed {
+    -fx-background-color: #3b729a; /* Màu của progress bar khi nhấn */
+}
+
+/* Định dạng cho thông báo người dùng rời phòng */
+.user-joined-left {
+    -fx-font-size: 12px;
+    -fx-font-weight: normal;
+    -fx-font-style: italic;
+    -fx-text-alignment: center;
+    -fx-padding: 5;
+}

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox alignment="CENTER" prefHeight="250.0" prefWidth="300.0" spacing="20.0" styleClass="custom-container" stylesheets="@../../../theme-light.css" xmlns="http://javafx.com/javafx/17.0.2-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.ncb.nhaccuaban.Controllers.LauncherController">
+    <padding>
+        <Insets bottom="10.0" left="20.0" right="20.0" top="20.0" />
+    </padding>
+    <VBox prefHeight="6.0" prefWidth="260.0" style="-fx-spacing: 5;">
+        <children>
+
+            <Label styleClass="custom-label" text="Name" />
+            <TextField fx:id="tfName" promptText="Enter your name" styleClass="custom-text-field">
+            <VBox.margin>
+               <Insets />
+            </VBox.margin>
+            <padding>
+               <Insets bottom="5.0" left="10.0" right="10.0" top="5.0" />
+            </padding></TextField>
+        </children>
+    </VBox>
+    <VBox prefHeight="21.0" prefWidth="260.0" style="-fx-spacing: 5;">
+        <children>
+
+            <Label styleClass="custom-label" text="Room id" />
+            <TextField fx:id="tfRoomId" promptText="Enter room id" styleClass="custom-text-field">
+            <padding>
+               <Insets bottom="5.0" left="10.0" right="10.0" top="5.0" />
+            </padding></TextField>
+        </children>
+    </VBox>
+   <HBox alignment="CENTER" prefHeight="40.0" prefWidth="260.0" spacing="50.0">
+      <children>
+       <Button fx:id="btnCreate" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#createRoom" prefHeight="40.0" prefWidth="90.0" styleClass="custom-button" text="Create" />
+         <Button fx:id="btnJoin" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#joinRoom" prefHeight="40.0" prefWidth="90.0" styleClass="custom-button" text="Join" />
+      </children>
+   </HBox>
+</VBox>

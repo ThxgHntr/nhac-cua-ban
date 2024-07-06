@@ -1,0 +1,55 @@
+/* Đặt màu nền cho VBox */
+.vbox {
+    -fx-background-color: #222;
+    -fx-padding: 20;
+}
+
+/* Đặt kiểu cơ bản cho Button trong dark theme */
+.custom-button {
+    -fx-background-color: linear-gradient(#333, #555);
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 20 10 20;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 5);
+}
+
+/* Hiệu ứng hover */
+.custom-button:hover {
+    -fx-background-color: linear-gradient(#555, #333);
+}
+
+/* Hiệu ứng click */
+.custom-button:pressed {
+    -fx-background-color: linear-gradient(#777, #555);
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 3);
+}
+
+/* Đặt kiểu cơ bản cho TextField trong dark theme */
+.custom-textfield {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-padding: 5 10 5 10;
+    -fx-border-color: #B3E5FC; /* Màu viền */
+    -fx-border-width: 1px; /* Độ dày viền */
+    -fx-border-radius: 5px; /* Bo góc viền */
+}
+
+/* Hiệu ứng hover cho TextField */
+.custom-textfield:hover {
+    -fx-border-color: #82B1FF; /* Màu viền khi di chuột vào */
+}
+
+/* Hiệu ứng khi TextField được focus */
+.custom-textfield:focused {
+    -fx-border-color: #2979FF; /* Màu viền khi focus */
+}
+/* Đặt kiểu cho các thành phần văn bản */
+.custom-label {
+    -fx-text-fill: white;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
