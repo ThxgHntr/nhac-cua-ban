@@ -1,13 +1,1 @@
-/target/classes/com/ncb/nhaccuaban/Models/RoomModel.class
-/target/classes/theme-dark.css
-/target/classes/theme-light.css
-/target/classes/module-info.class
-/target/classes/com/ncb/nhaccuaban/Controllers/LauncherController.class
-/target/classes/com/ncb/nhaccuaban/launcher.fxml
-/target/classes/com/ncb/nhaccuaban/Application.class
-/target/classes/com/ncb/nhaccuaban/client.fxml
-/target/classes/com/ncb/nhaccuaban/Controllers/ClientController$1.class
-/target/classes/com/ncb/nhaccuaban/Controllers/ClientController.class
-/target/classes/com/ncb/server/ClientHandler.class
-/target/classes/com/ncb/nhaccuaban/Models/CommandModel.class
-/target/classes/com/ncb/server/Server.class
+/target
