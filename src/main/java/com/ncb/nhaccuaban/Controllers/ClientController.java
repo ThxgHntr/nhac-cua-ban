@@ -55,7 +55,8 @@ public class ClientController {
     private Timer timer;
     private TimerTask task;
     private boolean isRunning = false;
-    private static final String SERVER_ADDRESS = "localhost";
+    private static final String SERVER_ADDRESS = "192.168.1.6";
+    private static final int MULTICAST_PORT = 4444;
     private static final int SERVER_PORT = 12345;
     private static ServerSocket serverSocket;
     private static Socket socket;
@@ -91,10 +92,10 @@ public class ClientController {
         this.isHost = isHost;
         this.me = name;
         this.room = room;
-        this.ms = new MulticastSocket(room.port());
+        this.ms = new MulticastSocket(MULTICAST_PORT);
         this.dp = new DatagramPacket(new byte[1000], 1000);
 
-        lblRoomId.setText("Room ID: " + room.port());
+        lblRoomId.setText("Room ID: " + room.id());
 
         btnSend.disableProperty().bind(chatField.textProperty().isEmpty());
 
@@ -111,7 +112,7 @@ public class ClientController {
             btnPrevious.setDisable(true);
         }
 
-        InetSocketAddress inetSA = new InetSocketAddress(room.ip(), room.port());
+        InetSocketAddress inetSA = new InetSocketAddress(room.ip(), MULTICAST_PORT);
         NetworkInterface netInt = NetworkInterface.getByInetAddress(room.ip());
         ms.joinGroup(inetSA, netInt);
 
@@ -128,7 +129,7 @@ public class ClientController {
     // Send request code to other clients
     public void sendRequestCode(String code, String client, String msg) throws IOException {
         byte[] buffer = (code + ":" + client + ":" + msg).getBytes();
-        dp = new DatagramPacket(buffer, buffer.length, room.ip(), room.port());
+        dp = new DatagramPacket(buffer, buffer.length, room.ip(), MULTICAST_PORT);
         ms.send(dp);
     }
 
@@ -217,7 +218,7 @@ public class ClientController {
         try {
             msgToSend = "NORM:" + me + ": " + chatField.getText().trim();
             byte[] data = msgToSend.getBytes();
-            dp = new DatagramPacket(data, data.length, room.ip(), room.port());
+            dp = new DatagramPacket(data, data.length, room.ip(), MULTICAST_PORT);
             ms.send(dp);
             chatField.clear();
         } catch (IOException e) {
