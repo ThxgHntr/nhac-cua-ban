@@ -228,10 +228,8 @@ public class ClientController {
 
     private void loadClients() {
         Platform.runLater(() -> {
-            // clear except first client
-            if (userListContainer.getChildren().size() > 1) {
-                userListContainer.getChildren().remove(1, userListContainer.getChildren().size());
-            }
+            // clear clients
+            userListContainer.getChildren().remove(0, userListContainer.getChildren().size());
             for (String client : clientList) {
                 Label label = new Label(client);
                 label.getStyleClass().add("user-label");
