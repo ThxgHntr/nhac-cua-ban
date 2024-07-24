@@ -161,7 +161,6 @@ public class LauncherController {
                 stage.setTitle("Listen Together");
                 stage.setScene(scene);
                 stage.setOnCloseRequest(_ -> leaveRoom());
-                stage.setMaximized(true);
                 stage.show();
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
