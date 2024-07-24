@@ -137,9 +137,11 @@
 /* Định dạng chung cho Label */
 .user-label {
     -fx-font-size: 16px; /* Kích thước chữ */
-    -fx-alignment: center;
+    -fx-alignment: center; /* Căn giữa nội dung theo chiều dọc */
     -fx-padding: 5; /* Khoảng cách nội bộ */
+    -fx-text-alignment: center; /* Căn giữa văn bản theo chiều ngang */
 }
+
 
 /* Định dạng chung cho Label */
 .room-id-label {
@@ -193,4 +195,38 @@
     -fx-font-style: italic;
     -fx-text-alignment: center;
     -fx-padding: 5;
+}
+
+/* Định dạng cho nút "X" */
+.remove-button {
+    -fx-background-color: #ff4d4d; /* Màu nền đỏ cho nút "X" */
+    -fx-text-fill: white; /* Màu chữ trắng */
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-border-radius: 5px; /* Bo góc */
+    -fx-background-radius: 5px; /* Bo góc nền */
+}
+
+/* Hiệu ứng hover cho nút "X" */
+.remove-button:hover {
+    -fx-background-color: #cc0000; /* Màu đỏ đậm hơn khi hover */
+    -fx-cursor: hand; /* Hiển thị con trỏ tay khi hover */
+}
+
+/* Định dạng cho HBox */
+.full-width-hbox {
+    -fx-pref-width: 100%;
+    -fx-alignment: center;
+    -fx-spacing: 5;
+}
+
+/* styles.css */
+
+/* Định dạng chung cho Label trong ListView */
+.song-label {
+    -fx-font-size: 14px; /* Kích thước chữ */
+    -fx-padding: 5; /* Padding xung quanh văn bản */
+    -fx-border-color: #dcdcdc; /* Màu đường viền */
+    -fx-border-width: 1; /* Độ dày đường viền */
+    -fx-alignment: center-left; /* Căn chỉnh văn bản */
 }

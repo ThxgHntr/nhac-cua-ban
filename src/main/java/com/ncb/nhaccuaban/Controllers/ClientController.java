@@ -6,9 +6,12 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.Node;
 import javafx.scene.control.*;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
+import javafx.scene.input.*;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
@@ -38,24 +41,26 @@ public class ClientController {
     public Label lblTotalTime;
     public ProgressBar songProgressBar;
     public Label lblNowPlaying;
-    public VBox userListContainer;
+    public VBox usersListContainer;
+    public ListView<File> songsListView;
     public Label lblRoomId;
 
+    public ArrayList<String> clientList = new ArrayList<>();
+    public ObservableList<File> songsList;
     private MulticastSocket ms;
     private DatagramPacket dp;
     private String me;
     private RoomModel room;
-    private final ArrayList<String> clientList = new ArrayList<>();
     private boolean isHost;
     private Media media;
     private MediaPlayer mediaPlayer;
-    private ArrayList<File> songs;
     private BooleanProperty isPlaying;
-    private IntegerProperty currentSong;
+    public static IntegerProperty currentSong;
     private Timer timer;
     private TimerTask task;
     private boolean isRunning = false;
-    private static final String SERVER_ADDRESS = "localhost";
+    private static final String SERVER_ADDRESS = "192.168.1.6";
+    private static final int MULTICAST_PORT = 4444;
     private static final int SERVER_PORT = 12345;
     private static ServerSocket serverSocket;
     private static Socket socket;
@@ -65,7 +70,9 @@ public class ClientController {
     private OutputStream os;
 
     public void initialize() {
-        songs = new ArrayList<>();
+        songsList = FXCollections.observableArrayList();
+        songsListView.setItems(songsList);
+        songsListView.setCellFactory(_ -> getFileCell());
         isPlaying = new SimpleBooleanProperty(false);
         currentSong = new SimpleIntegerProperty(-1);
 
@@ -78,23 +85,17 @@ public class ClientController {
             }
         });
         // Thêm shutdown hook
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                sendRequestCode("L", me, "");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }));
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> sendRequestCode("L", me, "")));
     }
 
     public void initData(boolean isHost, String name, RoomModel room) throws IOException, InterruptedException {
         this.isHost = isHost;
         this.me = name;
         this.room = room;
-        this.ms = new MulticastSocket(room.port());
+        this.ms = new MulticastSocket(MULTICAST_PORT);
         this.dp = new DatagramPacket(new byte[1000], 1000);
 
-        lblRoomId.setText("Room ID: " + room.port());
+        lblRoomId.setText("Room ID: " + room.id());
 
         btnSend.disableProperty().bind(chatField.textProperty().isEmpty());
 
@@ -111,7 +112,7 @@ public class ClientController {
             btnPrevious.setDisable(true);
         }
 
-        InetSocketAddress inetSA = new InetSocketAddress(room.ip(), room.port());
+        InetSocketAddress inetSA = new InetSocketAddress(room.ip(), MULTICAST_PORT);
         NetworkInterface netInt = NetworkInterface.getByInetAddress(room.ip());
         ms.joinGroup(inetSA, netInt);
 
@@ -126,10 +127,14 @@ public class ClientController {
     }
 
     // Send request code to other clients
-    public void sendRequestCode(String code, String client, String msg) throws IOException {
+    public void sendRequestCode(String code, String client, String msg) {
         byte[] buffer = (code + ":" + client + ":" + msg).getBytes();
-        dp = new DatagramPacket(buffer, buffer.length, room.ip(), room.port());
-        ms.send(dp);
+        dp = new DatagramPacket(buffer, buffer.length, room.ip(), MULTICAST_PORT);
+        try {
+            ms.send(dp);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // Receive chat message
@@ -150,7 +155,7 @@ public class ClientController {
                         case "L":
                             clientList.removeIf(cl -> cl.equals(newCl));
                             displayJoinedLeftUser(newCl, false);
-                            loadClients();
+                            loadUsersList();
                             break;
 
                         // Update client list
@@ -168,7 +173,7 @@ public class ClientController {
                                     }
                                 }
                                 displayJoinedLeftUser(newCl, true);
-                                loadClients();
+                                loadUsersList();
                             }
                             break;
 
@@ -217,7 +222,7 @@ public class ClientController {
         try {
             msgToSend = "NORM:" + me + ": " + chatField.getText().trim();
             byte[] data = msgToSend.getBytes();
-            dp = new DatagramPacket(data, data.length, room.ip(), room.port());
+            dp = new DatagramPacket(data, data.length, room.ip(), MULTICAST_PORT);
             ms.send(dp);
             chatField.clear();
         } catch (IOException e) {
@@ -225,16 +230,43 @@ public class ClientController {
         }
     }
 
-    private void loadClients() {
+    private void loadUsersList() {
         Platform.runLater(() -> {
-            // clear except first client
-            if (userListContainer.getChildren().size() > 1) {
-                userListContainer.getChildren().remove(1, userListContainer.getChildren().size());
-            }
+            // Xóa các client hiện tại
+            usersListContainer.getChildren().clear();
+
             for (String client : clientList) {
-                Label label = new Label(client);
-                label.getStyleClass().add("user-label");
-                userListContainer.getChildren().add(label);
+                // Tạo HBox chứa tên người dùng và nút "X"
+                HBox hbox = new HBox();
+                hbox.getStyleClass().add("full-width-hbox");
+
+                // Tạo Label cho tên người dùng
+                Label userLabel = new Label(client);
+                userLabel.getStyleClass().add("user-label");
+
+                // Thêm Label vào HBox
+                hbox.getChildren().add(userLabel);
+
+//                if (isHost) {
+//                    // Tạo nút "X" nếu người dùng là host
+//                    Button removeButton = new Button("X");
+//                    removeButton.getStyleClass().add("remove-button");
+//
+//                    // Thiết lập hành động khi nút "X" được nhấn
+//                    removeButton.setOnAction(_ -> {
+//                        // Xử lý khi nút "X" được nhấn, ví dụ: xóa người dùng khỏi danh sách
+//                        clientList.remove(client);
+//                        kickUser(client);
+//                        displayJoinedLeftUser(client, false);
+//                        loadUsersList(); // Cập nhật danh sách
+//                    });
+//
+//                    // Thêm Label và Button vào HBox
+//                    hbox.getChildren().add(removeButton);
+//                }
+
+                // Thêm HBox vào usersListContainer
+                usersListContainer.getChildren().add(hbox);
             }
         });
     }
@@ -285,7 +317,7 @@ public class ClientController {
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Audio Files", "*.mp3", "*.wav"));
         File selectedFile = fileChooser.showOpenDialog(null);
         if (selectedFile != null) {
-            songs.add(selectedFile);
+            songsList.add(selectedFile);
             if (currentSong.get() < 0) {
                 currentSong.set(0);
             }
@@ -298,7 +330,7 @@ public class ClientController {
         } else {
             if (mediaPlayer == null) {
                 currentSong.set(0);
-                media = new Media(songs.getFirst().toURI().toString());
+                media = new Media(songsList.getFirst().toURI().toString());
 
                 mediaPlayer = new MediaPlayer(media);
 
@@ -310,19 +342,12 @@ public class ClientController {
             }
             beginTimer();
             mediaPlayer.play();
-            lblNowPlaying.textProperty().setValue(
-                    songs.get(currentSong.get()).getName()
-                            .substring(0, songs.get(currentSong.get()).getName().lastIndexOf('.')));
-            System.out.println("playing " + songs.get(currentSong.get()));
+            System.out.println("playing " + songsList.get(currentSong.get()));
             isPlaying.set(true);
             if (isHost) {
                 btnPlay.setText("Pause");
-                try {
-                    sendRequestCode("PLAY", me, String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
-                    System.out.println("play at " + mediaPlayer.getCurrentTime().toSeconds());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                sendRequestCode("PLAY", me, String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
+                System.out.println("play at " + mediaPlayer.getCurrentTime().toSeconds());
             }
         }
     }
@@ -332,16 +357,12 @@ public class ClientController {
         mediaPlayer.pause();
         isPlaying.set(false);
         if (isHost) {
-            try {
-                sendRequestCode("PAUSE", me, "");
-                btnPlay.setText("Play");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            sendRequestCode("PAUSE", me, "");
+            btnPlay.setText("Play");
         }
     }
 
-    // Only use this method to play previous or next song
+    // Only use this method to play a specific song
     public void playSong() {
         mediaPlayer.stop();
 
@@ -349,7 +370,7 @@ public class ClientController {
             cancelTimer();
         }
 
-        media = new Media(songs.get(currentSong.get()).toURI().toString());
+        media = new Media(songsList.get(currentSong.get()).toURI().toString());
 
         mediaPlayer = new MediaPlayer(media);
 
@@ -361,12 +382,8 @@ public class ClientController {
 
         btnPlay.setText("Pause");
 
-        try {
-            sendRequestCode("PLAY", me, String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
-            System.out.println("play at " + mediaPlayer.getCurrentTime().toSeconds());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        sendRequestCode("PLAY", me, String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
+        System.out.println("play at " + mediaPlayer.getCurrentTime().toSeconds());
     }
 
     public void playPrevious() {
@@ -374,13 +391,13 @@ public class ClientController {
             currentSong.set(currentSong.get() - 1);
             playSong();
         } else {
-            currentSong.set(songs.size() - 1);
+            currentSong.set(songsList.size() - 1);
             playSong();
         }
     }
 
     public void playNext() {
-        if (currentSong.get() < songs.size() - 1) {
+        if (currentSong.get() < songsList.size() - 1) {
             currentSong.set(currentSong.get() + 1);
             playSong();
         } else {
@@ -391,12 +408,11 @@ public class ClientController {
 
     public void beginTimer() {
         if (isHost) {
-            try {
-                sendRequestCode("PLAY", me, String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
-                System.out.println("play at " + mediaPlayer.getCurrentTime().toSeconds());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            sendRequestCode("PLAY", me, String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
+            lblNowPlaying.textProperty().setValue(
+                    songsList.get(currentSong.get()).getName()
+                            .substring(0, songsList.get(currentSong.get()).getName().lastIndexOf('.')));
+            System.out.println("play at " + mediaPlayer.getCurrentTime().toSeconds());
         }
 
         isRunning = true;
@@ -442,7 +458,7 @@ public class ClientController {
                 while (true) {
                     socket = serverSocket.accept();
                     if (currentSong.get() >= 0) {
-                        File file = songs.get(currentSong.get());
+                        File file = songsList.get(currentSong.get());
 
                         byte[] fileBytes = new byte[(int) file.length()];
                         fis = new FileInputStream(file);
@@ -463,7 +479,7 @@ public class ClientController {
         });
     }
 
-    // Phát audio từ server
+    // play audio
     private Thread audioReceiver() {
         return new Thread(() -> {
             try {
@@ -478,12 +494,131 @@ public class ClientController {
                     fos.flush();
                 }
                 fos.close();
-                songs.add(file);
+                songsList.add(file);
                 Platform.runLater(this::play);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         });
     }
+
+    public ListCell<File> getFileCell() {
+        return new FileCell() {
+            @Override
+            public Node getStyleableNode() {
+                return super.getStyleableNode();
+            }
+
+            @Override
+            protected void playChosenSong(File file) {
+                currentSong.set(songsList.indexOf(file));
+                playSong();
+            }
+
+            @Override
+            protected void deleteChosenSong(File file) {
+                songsList.remove(file);
+            }
+        };
+    }
 }
 
+abstract class FileCell extends ListCell<File> {
+    private final Label songLabel;
+
+    public FileCell() {
+        songLabel = new Label();
+        songLabel.getStyleClass().add("song-label");
+        setGraphic(songLabel);
+
+        // Context menu for right click
+        ContextMenu contextMenu = new ContextMenu();
+
+        MenuItem playItem = new MenuItem("Play");
+        playItem.setOnAction(_ -> playChosenSong(getItem()));
+
+        MenuItem deleteItem = new MenuItem("Delete");
+        deleteItem.setOnAction(_ -> deleteChosenSong(getItem()));
+
+        contextMenu.getItems().addAll(playItem, deleteItem);
+
+        // context menu for cell
+        setContextMenu(contextMenu);
+
+        // Drag and Drop event
+        setOnDragDetected(event -> {
+            if (getItem() == null) {
+                return;
+            }
+            Dragboard dragboard = startDragAndDrop(TransferMode.MOVE);
+            ClipboardContent content = new ClipboardContent();
+            content.putString(getItem().getAbsolutePath());
+            dragboard.setContent(content);
+            event.consume();
+        });
+
+        setOnDragOver(event -> {
+            if (event.getGestureSource() != this && event.getDragboard().hasString()) {
+                event.acceptTransferModes(TransferMode.MOVE);
+            }
+            event.consume();
+        });
+
+        setOnDragEntered(event -> {
+            if (event.getGestureSource() != this && event.getDragboard().hasString()) {
+                setOpacity(0.3);
+            }
+        });
+
+        setOnDragExited(event -> {
+            if (event.getGestureSource() != this && event.getDragboard().hasString()) {
+                setOpacity(1);
+            }
+        });
+
+        setOnDragDropped(event -> {
+            if (getItem() == null) {
+                return;
+            }
+            Dragboard dragboard = event.getDragboard();
+            boolean success = false;
+            if (dragboard.hasString()) {
+                ObservableList<File> items = getListView().getItems();
+                int draggedIdx = items.indexOf(new File(dragboard.getString()));
+                int thisIdx = items.indexOf(getItem());
+
+                if (draggedIdx != thisIdx) {
+                    File temp = items.get(draggedIdx);
+                    items.set(draggedIdx, items.get(thisIdx));
+                    items.set(thisIdx, temp);
+
+                    ListView<File> listView = getListView();
+                    listView.getSelectionModel().clearSelection();
+                    listView.getSelectionModel().select(thisIdx);
+                }
+
+                success = true;
+            }
+            event.setDropCompleted(success);
+            event.consume();
+        });
+
+        setOnDragDone(DragEvent::consume);
+    }
+
+    @Override
+    protected void updateItem(File item, boolean empty) {
+        super.updateItem(item, empty);
+        if (empty || item == null) {
+            setText(null);
+            setGraphic(null);
+        } else {
+            songLabel.setText(item.getName());
+            setGraphic(songLabel);
+        }
+    }
+
+    protected abstract void playChosenSong(File file);
+
+    protected abstract void deleteChosenSong(File file);
+}

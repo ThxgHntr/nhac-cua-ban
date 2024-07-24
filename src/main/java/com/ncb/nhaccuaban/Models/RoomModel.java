@@ -4,12 +4,12 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.net.InetAddress;
 
-public record RoomModel(int port, InetAddress ip) implements Serializable {
+public record RoomModel(InetAddress ip, int id) implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
     public String toString() {
-        return ip.toString() + ":" + port;
+        return ip.toString() + "#" + id;
     }
 
     public boolean equals(Object obj) {
@@ -22,6 +22,6 @@ public record RoomModel(int port, InetAddress ip) implements Serializable {
 
         RoomModel other = (RoomModel) obj;
 
-        return ip.equals(other.ip) && port == other.port;
+        return ip.equals(other.ip) && id == other.id;
     }
 }
