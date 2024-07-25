@@ -48,7 +48,7 @@ public class ClientController {
     public ObservableList<File> songsList;
     private MulticastSocket ms;
     private DatagramPacket dp;
-    private String me;
+    public String me;
     private RoomModel room;
     private boolean isHost;
     private Media media;
@@ -58,7 +58,6 @@ public class ClientController {
     private Timer timer;
     private TimerTask task;
     private boolean isRunning = false;
-    private static final String SERVER_ADDRESS = "192.168.1.6";
     private static final int MULTICAST_PORT = 4444;
     private static final int SERVER_PORT = 12345;
     private static ServerSocket serverSocket;
@@ -436,7 +435,7 @@ public class ClientController {
     private Thread audioReceiver() {
         return new Thread(() -> {
             try {
-                Socket receiveSocket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+                Socket receiveSocket = new Socket(room.hostIp(), SERVER_PORT);
                 InputStream is = receiveSocket.getInputStream();
                 // Đọc header
                 byte[] headerBuffer = new byte[4];
@@ -623,13 +622,18 @@ public class ClientController {
 
             @Override
             protected void playChosenSong(File file) {
-                currentSong.set(songsList.indexOf(file));
-                playSong();
+                if (isHost) {
+                    playSong();
+                }
             }
 
             @Override
             protected void deleteChosenSong(File file) {
-                songsList.remove(file);
+                if (isHost) {
+                    currentSong.set(songsList.indexOf(file));
+                    songsList.remove(file);
+                    sendSongsList("", songsList);
+                }
             }
         };
     }
