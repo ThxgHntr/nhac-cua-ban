@@ -484,13 +484,16 @@ public class ClientController {
                     mediaPlayer.setOnEndOfMedia(this::playNext);
                 }
                 mediaPlayer.setVolume(volumeSlider.getValue() / 100.0);
+                if (isHost && socket != null) {
+                    TCPSendFile();
+                }
             }
             beginTimer();
             mediaPlayer.play();
             isPlaying.set(true);
             btnPlay.setText("Pause");
-            if (isHost && socket != null) {
-                TCPSendFile();
+
+            if (isHost) {
                 sendRequestCode("PLAY", String.valueOf(currentSong.get()), String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
             }
         }
