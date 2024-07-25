@@ -75,7 +75,7 @@ public class LauncherController {
             }
 
             if (ip.isMulticastAddress() && id > 0 && !name.isEmpty()) {
-                room = new RoomModel(ip, id);
+                room = new RoomModel(ip, id, InetAddress.getLocalHost());
             } else {
                 displayAlert();
             }

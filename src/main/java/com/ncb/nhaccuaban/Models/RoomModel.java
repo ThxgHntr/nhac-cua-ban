@@ -4,7 +4,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.net.InetAddress;
 
-public record RoomModel(InetAddress ip, int id) implements Serializable {
+public record RoomModel(InetAddress ip, int id, InetAddress hostIp) implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
