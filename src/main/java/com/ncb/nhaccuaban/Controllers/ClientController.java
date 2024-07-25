@@ -184,9 +184,7 @@ public class ClientController {
 
                                     // Convert ArrayList back to ObservableList
                                     songsList = FXCollections.observableArrayList(receivedSongsList);
-                                    Platform.runLater(() -> {
-                                        songsListView.setItems(songsList);
-                                    });
+                                    Platform.runLater(() -> songsListView.setItems(songsList));
                                 } catch (ClassNotFoundException e) {
                                     throw new RuntimeException(e);
                                 }
@@ -392,7 +390,7 @@ public class ClientController {
                 serverSocket = new ServerSocket(SERVER_PORT);
                 while (true) {
                     socket = serverSocket.accept();
-                    new Thread(this::TCPSendFile).start();
+                    TCPSendFile();
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -493,7 +491,7 @@ public class ClientController {
             isPlaying.set(true);
             btnPlay.setText("Pause");
             if (isHost && socket != null) {
-                new Thread(this::TCPSendFile).start();
+                TCPSendFile();
                 sendRequestCode("PLAY", String.valueOf(currentSong.get()), String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
             }
         }
@@ -549,7 +547,6 @@ public class ClientController {
             playSong();
         } else {
             if (isHost) {
-                btnPlay.setText("Play");
                 notice();
             }
         }
@@ -561,7 +558,6 @@ public class ClientController {
             playSong();
         } else {
             if (isHost) {
-                btnPlay.setText("Play");
                 notice();
             }
         }
