@@ -623,6 +623,7 @@ public class ClientController {
             @Override
             protected void playChosenSong(File file) {
                 if (isHost) {
+                    currentSong.set(songsList.indexOf(file));
                     playSong();
                 }
             }
