@@ -22,11 +22,10 @@ import javafx.util.Duration;
 
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 public class ClientController {
     public TextField chatField;
@@ -64,12 +63,16 @@ public class ClientController {
     private static final int SERVER_PORT = 12345;
     private static ServerSocket serverSocket;
     private static Socket socket;
-    private InputStream is;
-    private FileOutputStream fos;
-    private FileInputStream fis;
-    private OutputStream os;
 
     public void initialize() {
+    }
+
+    public void initData(boolean isHost, String name, RoomModel room) throws IOException, InterruptedException {
+        this.isHost = isHost;
+        this.me = name;
+        this.room = room;
+        this.ms = new MulticastSocket(MULTICAST_PORT);
+        this.dp = new DatagramPacket(new byte[1000], 1000);
         songsList = FXCollections.observableArrayList();
         songsListView.setItems(songsList);
         songsListView.setCellFactory(_ -> getFileCell());
@@ -86,15 +89,6 @@ public class ClientController {
         });
         // Thêm shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(() -> sendRequestCode("L", me, "")));
-    }
-
-    public void initData(boolean isHost, String name, RoomModel room) throws IOException, InterruptedException {
-        this.isHost = isHost;
-        this.me = name;
-        this.room = room;
-        this.ms = new MulticastSocket(MULTICAST_PORT);
-        this.dp = new DatagramPacket(new byte[1000], 1000);
-
         lblRoomId.setText("Room ID: " + room.id());
 
         btnSend.disableProperty().bind(chatField.textProperty().isEmpty());
@@ -146,7 +140,7 @@ public class ClientController {
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     ms.receive(packet);
 
-                    String receivedMsg = new String(packet.getData(), 0, packet.getLength());
+                    String receivedMsg = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8);
                     String[] msgSplit = receivedMsg.split(":", 3);
                     String newCl = msgSplit[1];
 
@@ -163,8 +157,11 @@ public class ClientController {
                             if (!clientList.contains(newCl)) {
                                 clientList.add(newCl);
                                 if (isHost) {
+                                    if (!songsList.isEmpty()) {
+                                        sendSongsList(me, songsList);
+                                    }
                                     if (isRunning) {
-                                        sendRequestCode("PLAY", me, String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
+                                        sendRequestCode("PLAY", String.valueOf(currentSong.get()), String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
                                         System.out.println("play at " + mediaPlayer.getCurrentTime().toSeconds());
                                     }
 
@@ -177,14 +174,43 @@ public class ClientController {
                             }
                             break;
 
+                        case "LOADSONGS":
+                            if (!isHost) {
+                                String encodedSongsList = msgSplit[2];
+                                byte[] songsListBytes = Base64.getDecoder().decode(encodedSongsList);
+                                try (ByteArrayInputStream bais = new ByteArrayInputStream(songsListBytes);
+                                     ObjectInputStream ois = new ObjectInputStream(bais)) {
+                                    ArrayList<File> receivedSongsList = (ArrayList<File>) ois.readObject();
+
+                                    // Convert ArrayList back to ObservableList
+                                    songsList = FXCollections.observableArrayList(receivedSongsList);
+                                    Platform.runLater(() -> {
+                                        songsListView.setItems(songsList);
+                                    });
+                                } catch (ClassNotFoundException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                            break;
+
                         case "PLAY":
-                            if (!isHost && mediaPlayer != null) {
-                                double receivedTimeInSeconds = Double.parseDouble(msgSplit[2]);
-                                // Tạo một đối tượng Duration từ số giây
-                                Duration receivedDuration = Duration.seconds(receivedTimeInSeconds);
-                                Platform.runLater(this::play);
-                                mediaPlayer.seek(receivedDuration);
-                                beginTimer();
+                            if (!isHost) {
+                                Platform.runLater(() -> {
+                                    currentSong.set(Integer.parseInt(msgSplit[1]));
+                                    play();
+                                    double receivedTimeInSeconds = Double.parseDouble(msgSplit[2]);
+                                    Duration receivedDuration = Duration.seconds(receivedTimeInSeconds);
+                                    mediaPlayer.seek(receivedDuration);
+                                });
+                            }
+                            break;
+
+                        case "PLAYSONG":
+                            if (!isHost) {
+                                Platform.runLater(() -> {
+                                    currentSong.set(Integer.parseInt(msgSplit[1]));
+                                    playSong();
+                                });
                             }
                             break;
 
@@ -219,15 +245,10 @@ public class ClientController {
             return;
         }
 
-        try {
-            msgToSend = "NORM:" + me + ": " + chatField.getText().trim();
-            byte[] data = msgToSend.getBytes();
-            dp = new DatagramPacket(data, data.length, room.ip(), MULTICAST_PORT);
-            ms.send(dp);
-            chatField.clear();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        msgToSend = "NORM:" + me + ": " + chatField.getText().trim();
+        byte[] data = msgToSend.getBytes();
+        sendDatagramPacket(data);
+        chatField.clear();
     }
 
     private void loadUsersList() {
@@ -321,7 +342,135 @@ public class ClientController {
             if (currentSong.get() < 0) {
                 currentSong.set(0);
             }
+            sendSongsList(me, songsList);
         }
+    }
+
+    public void sendSongsList(String client, ObservableList<File> songsList) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+
+            ArrayList<File> serializableList = new ArrayList<>();
+
+            for (File file : songsList) {
+                serializableList.add(new File(file.getName()));
+            }
+
+            oos.writeObject(serializableList);
+            oos.flush();
+
+            // Convert the serialized object to a byte array
+            byte[] songsListBytes = baos.toByteArray();
+
+            // Encode the data (simple approach: using Base64 encoding)
+            String encodedSongsList = Base64.getEncoder().encodeToString(songsListBytes);
+
+            // Create a message with code, client and encoded object
+            String message = "LOADSONGS:" + client + ":" + encodedSongsList;
+
+            // Convert the message to bytes
+            byte[] buffer = message.getBytes(StandardCharsets.UTF_8);
+
+            sendDatagramPacket(buffer);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void sendDatagramPacket(byte[] buffer) {
+        dp = new DatagramPacket(buffer, buffer.length, room.ip(), MULTICAST_PORT);
+        try {
+            ms.send(dp);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Thread audioSender() {
+        return new Thread(() -> {
+            try {
+                serverSocket = new ServerSocket(SERVER_PORT);
+                while (true) {
+                    socket = serverSocket.accept();
+                    new Thread(this::TCPSendFile).start();
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public void TCPSendFile() {
+        if (currentSong.get() >= 0) {
+            int index = currentSong.get();
+            File file = songsList.get(index);
+
+            System.out.println("current song: " + index);
+
+            // Tạo header
+            String header = String.format("%04d", index);
+            byte[] headerBytes = header.getBytes(StandardCharsets.UTF_8);
+            byte[] fileBytes = new byte[(int) file.length()];
+
+            try {
+                OutputStream os = socket.getOutputStream();
+
+                // Gửi header
+                os.write(headerBytes);
+                os.flush();
+
+                FileInputStream fis = new FileInputStream(file);
+
+                // Gửi file
+                int bytesRead = fis.read(fileBytes);
+                if (bytesRead != -1) {
+                    os.write(fileBytes);
+                    os.flush();
+                }
+                fis.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    // receive audio and play
+    private Thread audioReceiver() {
+        return new Thread(() -> {
+            try {
+                Socket receiveSocket = new Socket(SERVER_ADDRESS, SERVER_PORT);
+                InputStream is = receiveSocket.getInputStream();
+                // Đọc header
+                byte[] headerBuffer = new byte[4];
+                int headerBytesRead = is.read(headerBuffer);
+                String header = new String(headerBuffer, 0, headerBytesRead, StandardCharsets.UTF_8);
+
+                int index = Integer.parseInt(header.trim());
+
+                currentSong.set(index);
+
+                System.out.println("current song: " + index);
+
+                File file = new File(songsList.get(index).getName());
+
+                // Kiểm tra xem tệp có tồn tại không
+                if (!file.exists()) {
+                    FileOutputStream fos = new FileOutputStream(file);
+
+                    byte[] buffer = new byte[1024];
+                    int bytesRead;
+                    while ((bytesRead = is.read(buffer)) != -1) {
+                        fos.write(buffer, 0, bytesRead);
+                        fos.flush();
+                    }
+                    fos.close();
+                }
+                is.close();
+                receiveSocket.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     public void play() {
@@ -336,18 +485,16 @@ public class ClientController {
 
                 if (isHost) {
                     mediaPlayer.setOnEndOfMedia(this::playNext);
-                    btnPlay.setText("Pause");
                 }
                 mediaPlayer.setVolume(volumeSlider.getValue() / 100.0);
             }
             beginTimer();
             mediaPlayer.play();
-            System.out.println("playing " + songsList.get(currentSong.get()));
             isPlaying.set(true);
-            if (isHost) {
-                btnPlay.setText("Pause");
-                sendRequestCode("PLAY", me, String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
-                System.out.println("play at " + mediaPlayer.getCurrentTime().toSeconds());
+            btnPlay.setText("Pause");
+            if (isHost && socket != null) {
+                new Thread(this::TCPSendFile).start();
+                sendRequestCode("PLAY", String.valueOf(currentSong.get()), String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
             }
         }
     }
@@ -356,34 +503,44 @@ public class ClientController {
         cancelTimer();
         mediaPlayer.pause();
         isPlaying.set(false);
+        btnPlay.setText("Play");
         if (isHost) {
             sendRequestCode("PAUSE", me, "");
-            btnPlay.setText("Play");
         }
     }
 
     // Only use this method to play a specific song
     public void playSong() {
-        mediaPlayer.stop();
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
+        }
 
         if (isRunning) {
             cancelTimer();
+        }
+
+        if (!isHost) {
+            audioReceiver().start();
         }
 
         media = new Media(songsList.get(currentSong.get()).toURI().toString());
 
         mediaPlayer = new MediaPlayer(media);
 
-        isPlaying.set(true);
-        mediaPlayer.setOnEndOfMedia(this::playNext);
+        if (isHost) {
+            mediaPlayer.setOnEndOfMedia(this::playNext);
+        }
         mediaPlayer.setVolume(volumeSlider.getValue() / 100.0);
+
         beginTimer();
         mediaPlayer.play();
-
+        isPlaying.set(true);
         btnPlay.setText("Pause");
 
-        sendRequestCode("PLAY", me, String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
-        System.out.println("play at " + mediaPlayer.getCurrentTime().toSeconds());
+        if (isHost && socket != null) {
+            TCPSendFile();
+            sendRequestCode("PLAYSONG", String.valueOf(currentSong.get()), String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
+        }
     }
 
     public void playPrevious() {
@@ -391,8 +548,10 @@ public class ClientController {
             currentSong.set(currentSong.get() - 1);
             playSong();
         } else {
-            currentSong.set(songsList.size() - 1);
-            playSong();
+            if (isHost) {
+                btnPlay.setText("Play");
+                notice();
+            }
         }
     }
 
@@ -401,19 +560,28 @@ public class ClientController {
             currentSong.set(currentSong.get() + 1);
             playSong();
         } else {
-            currentSong.set(0);
-            playSong();
+            if (isHost) {
+                btnPlay.setText("Play");
+                notice();
+            }
         }
     }
 
+    public void notice() {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+
+            alert.setTitle("Notice");
+            alert.setHeaderText(null);
+            alert.setContentText("End off the list!");
+            alert.showAndWait();
+        });
+    }
+
     public void beginTimer() {
-        if (isHost) {
-            sendRequestCode("PLAY", me, String.valueOf(mediaPlayer.getCurrentTime().toSeconds()));
-            lblNowPlaying.textProperty().setValue(
-                    songsList.get(currentSong.get()).getName()
-                            .substring(0, songsList.get(currentSong.get()).getName().lastIndexOf('.')));
-            System.out.println("play at " + mediaPlayer.getCurrentTime().toSeconds());
-        }
+        lblNowPlaying.textProperty().setValue(
+                songsList.get(currentSong.get()).getName());
+        System.out.println("play at " + mediaPlayer.getCurrentTime().toSeconds());
 
         isRunning = true;
 
@@ -431,9 +599,8 @@ public class ClientController {
                 });
 
                 songProgressBar.setProgress(current / total);
-                if (current == total && isHost) {
+                if (current == total) {
                     cancelTimer();
-                    playNext();
                 }
             }
         };
@@ -449,57 +616,6 @@ public class ClientController {
         if (timer != null) {
             timer.cancel();
         }
-    }
-
-    private Thread audioSender() {
-        return new Thread(() -> {
-            try {
-                serverSocket = new ServerSocket(SERVER_PORT);
-                while (true) {
-                    socket = serverSocket.accept();
-                    if (currentSong.get() >= 0) {
-                        File file = songsList.get(currentSong.get());
-
-                        byte[] fileBytes = new byte[(int) file.length()];
-                        fis = new FileInputStream(file);
-                        os = socket.getOutputStream();
-                        int bytesRead = fis.read(fileBytes);
-                        if (bytesRead == -1) {
-                            fis.close();
-                        } else {
-                            os.write(fileBytes);
-                            os.flush();
-                            os.close();
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
-
-    // play audio
-    private Thread audioReceiver() {
-        return new Thread(() -> {
-            try {
-                socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
-                is = socket.getInputStream();
-                File file = new File("received_song.mp3");
-                fos = new FileOutputStream(file);
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-                while ((bytesRead = is.read(buffer)) != -1) {
-                    fos.write(buffer, 0, bytesRead);
-                    fos.flush();
-                }
-                fos.close();
-                songsList.add(file);
-                Platform.runLater(this::play);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
     }
 
     public ListCell<File> getFileCell() {

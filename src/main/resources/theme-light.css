@@ -226,7 +226,5 @@
 .song-label {
     -fx-font-size: 14px; /* Kích thước chữ */
     -fx-padding: 5; /* Padding xung quanh văn bản */
-    -fx-border-color: #dcdcdc; /* Màu đường viền */
-    -fx-border-width: 1; /* Độ dày đường viền */
     -fx-alignment: center-left; /* Căn chỉnh văn bản */
 }
